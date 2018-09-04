@@ -4,10 +4,10 @@
 #include <math.h>
 #include <string.h>
 
-const double ACEL_COLISAO;
-const double ACEL_GRAVIDADE;
-const double RAIO_ESFERA;
-const int SLICES;
+const double ACEL_COLISAO = 10;
+const double ACEL_GRAVIDADE = 3;
+const double RAIO_ESFERA = 1;
+const int SLICES = 30; //quantidade de slices que dividirão a esfera
 
 class Bola{
 private:
@@ -15,7 +15,14 @@ private:
 	double vx, vy, vz;
 
 public:
-	Bola() x(0), y(0), z(100) {}
+	Bola(){
+		x = 0;
+		y = 0;
+		z = 0;
+		vx = 0;
+		vy = 0;
+		vz = 0;
+	}
 	void move(){
 		acelera();
 		x += vx;
@@ -29,23 +36,38 @@ public:
 		z += ACEL_GRAVIDADE;
 	}
 	void desenha(){
-		gluPushMatrix();
+		glPushMatrix();
 			glTranslatef(x, y, z);
-			gluSphere(RAIO_ESFERA, SLICES, SLICES);
-		gluPopMatrix();
+			gluSphere(gluNewQuadric(), RAIO_ESFERA, SLICES, SLICES);
+		glPopMatrix();
 	}
 
 };
 
+Bola bola;
+
+void inicializacao() {
+	glClearColor(0.5, 0.5, 0.5, 0.0);
+}
+
+
 void funcaoDisplay() {
 
-	gluLookAt(0, 0, 100, );
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(-4, 6, -4, 6);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	gluLookAt(0, 20, 100, 0, 0, 100, 0, 0, 1);
 	
-	
+	bola.desenha();
 }
 
 void funcaoKeyboard(unsigned char key, int x, int y) {
-
+/*
 	if(key == 'q') {
 		exit(-1);
 	}
@@ -59,12 +81,12 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 	}
 	if(key == 's')
 		animacao = 1 - animacao;
-	glutPostRedisplay();
+	glutPostRedisplay();*/
 }
 
 void temporizador() {
 	glutPostRedisplay();
-	if(animacao) {
+	/*if(animacao) {
 		tAtual += 0.003*delta;
 		if(tAtual > 1) {
 			tAtual = 1;
@@ -74,12 +96,12 @@ void temporizador() {
 			tAtual = 0;
 			delta = 1;
 		}
-	}
+	}*/
 }
 
 void funcaoMouse(int button, int state, int x, int y) {
 
-	GLint viewport[4];
+	/*GLint viewport[4];
 	GLdouble modelview[16];
 	GLdouble projection[16];
 	GLfloat winX, winY, winZ;
@@ -101,12 +123,12 @@ void funcaoMouse(int button, int state, int x, int y) {
 	if(button == GLUT_RIGHT_BUTTON) {
 		vx[2] = worldX;
 		vy[2] = worldY;
-	}
+	}*/
 }
 
 int main(int argc, char **argv) {
 	
-	Bola bola = new Bola();
+	bola = Bola();
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
