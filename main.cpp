@@ -10,7 +10,10 @@ int delta = 1; //= 1 ou -1... variação positiva ou negativa de tAtual, quando 
 int animacao = 1;
 float top = 6, bottom = -4, left = -4, right = 6;
 int showGuideLines = true;
-
+double ycam=0;
+double xcam=0;
+double zcam=0;
+double xbola=0,ybola=0,zbola=0;
 using namespace std;
 
 //vetor que contem as abscissas dos pontos
@@ -24,9 +27,9 @@ int pontoAtual = 0;
 
 const double ACEL_COLISAO = 10;
 const double ACEL_GRAVIDADE = 3;
-const double RAIO_ESFERA = 1;
+const double RAIO_ESFERA = 0.5;
 const int SLICES = 30; //quantidade de slices que dividirão a esfera
-const int RAIO_CILINDRO = 5;
+const int RAIO_CILINDRO = 1;
 
 class Bola{
 private:
@@ -38,7 +41,7 @@ public:
 	double getX(){return x;}
 	double getY(){return y;}
 	double getZ(){return z;}
-	
+	void upd(double a, double b, double c){x=a,y=b,z=c;}
 	Bola(){
 		x = 0;
 		y = 0;
@@ -65,12 +68,12 @@ public:
 			//glTranslatef(x, y, z);
 			glutSolidSphere(RAIO_ESFERA, SLICES, SLICES);
 		glPopMatrix();*/
-		
+		upd(xbola, ybola, zbola);
 		
 		glPushMatrix ();
-			glRotatef       (60.0, 1,0,0);
+			glTranslatef(x, y, z);
 			//glRotatef       (zRotated, 0,0,1);
-			glutSolidSphere (RAIO_ESFERA, SLICES, SLICES);
+			glutWireSphere (RAIO_ESFERA, SLICES, SLICES);
 		glPopMatrix ();
 	}
 
@@ -94,43 +97,48 @@ float spline(vector<float> v, float t) {
 	return 0;
 }
 
+void desenhaCilindro(){
+	/*glPushMatrix();
+		gluCylinder();
+	glPopMatrix();*/
+
+}
 
 void funcaoDisplay() {
-
+	glFrustum(-30, 30, -30, 30, 0.1, 200);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(left, right, bottom, top);
+	gluOrtho2D(-4, 4, -4, 4);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	
 	glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
+	gluLookAt(xcam-.3,ycam-.01,zcam, 0,0,0, 0, 1, 0);
+	printf("(%f, %f, %f)\n", xbola, ybola, zbola);
 	bola.desenha();
-    /*glPushMatrix ();
-    	glTranslatef    (-1.5, 0.0, 0.0);
-    	glRotatef       (60.0, 1,0,0);
-    	glRotatef       (zRotated*2.0, 0,0,1);   // Red ball rotates at twice the rate of blue ball.
-    	glutSolidSphere (1.0, 50, 50);
-    glPopMatrix ();
- 
-    glColor3f (0.1, 0.2, 0.8);              // Blue ball displaced to right.
-    glPushMatrix ();
-		glTranslatef    (1.5, 0.0, 0.0);
-		glRotatef       (60.0, 1,0,0);
-		glRotatef       (zRotated, 0,0,1);
-		glutSolidSphere (1.0, 20, 50);
-	glPopMatrix ();*/
 
 	glutSwapBuffers();
 	glFlush();
 }
 
 void funcaoKeyboard(unsigned char key, int x, int y) {
-	if(key == 'q') {
-		exit(-1);
-	}
+	//if(key == 'q') {
+	//	exit(-1);
+	//}
+	if(key == 'a') xbola-=0.1;
+	if(key == 'q') xbola+=0.1;
+	if(key == 's') ybola-=0.1;
+	if(key == 'w') ybola+=0.1;
+	if(key == 'd') zbola-=0.1;
+	if(key == 'e') zbola+=0.1;
+	if(key == 'f') xcam-=0.1;
+	if(key == 'r') xcam+=0.1;
+	if(key == 'g') ycam-=0.1;
+	if(key == 't') ycam+=0.1;
+	if(key == 'h') zcam-=0.1;
+	if(key == 'y') zcam+=0.1;
 	glutPostRedisplay();
 }
 
@@ -153,7 +161,7 @@ int main(int argc, char **argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(800, 800);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("Splines");
+	glutCreateWindow("Jogo");
 	glutKeyboardFunc(funcaoKeyboard);
 	glutMouseFunc(funcaoMouse);
 	glutMotionFunc(funcaoMouseMotion);
