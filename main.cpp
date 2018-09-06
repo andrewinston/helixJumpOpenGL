@@ -3,11 +3,30 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <vector>
+
+float tAtual = 2.0; //um ponto é renderizado na reta
+int delta = 1; //= 1 ou -1... variação positiva ou negativa de tAtual, quando animacao = 1
+int animacao = 1;
+float top = 6, bottom = -4, left = -4, right = 6;
+int showGuideLines = true;
+
+using namespace std;
+
+//vetor que contem as abscissas dos pontos
+vector<float> vx;
+//vetor que contem as ordenadas dos pontos
+vector<float> vy;
+
+enum {ADICIONARREMOVER, ALTERAR};
+int estado = ADICIONARREMOVER;
+int pontoAtual = 0;
 
 const double ACEL_COLISAO = 10;
 const double ACEL_GRAVIDADE = 3;
 const double RAIO_ESFERA = 1;
 const int SLICES = 30; //quantidade de slices que dividirão a esfera
+const int RAIO_CILINDRO = 5;
 
 class Bola{
 private:
@@ -15,6 +34,11 @@ private:
 	double vx, vy, vz;
 
 public:
+
+	double getX(){return x;}
+	double getY(){return y;}
+	double getZ(){return z;}
+	
 	Bola(){
 		x = 0;
 		y = 0;
@@ -36,18 +60,38 @@ public:
 		z += ACEL_GRAVIDADE;
 	}
 	void desenha(){
+		/*glColor3f(1,1,1);
 		glPushMatrix();
-			glTranslatef(x, y, z);
-			gluSphere(gluNewQuadric(), RAIO_ESFERA, SLICES, SLICES);
-		glPopMatrix();
+			//glTranslatef(x, y, z);
+			glutSolidSphere(RAIO_ESFERA, SLICES, SLICES);
+		glPopMatrix();*/
+		
+		
+		glPushMatrix ();
+			glRotatef       (60.0, 1,0,0);
+			//glRotatef       (zRotated, 0,0,1);
+			glutSolidSphere (RAIO_ESFERA, SLICES, SLICES);
+		glPopMatrix ();
 	}
 
 };
 
+
 Bola bola;
+double zRotated = 0;
 
 void inicializacao() {
-	glClearColor(0.5, 0.5, 0.5, 0.0);
+	glClearColor(0.5, 0.5, 0.5, 0);
+}
+
+//implementação da função spline (use a b-spline quadrática que consta nas notas de aula)
+float g(float t) {
+	return 0;
+}
+
+//retorna o ponto da spline s(t)
+float spline(vector<float> v, float t) {
+	return 0;
 }
 
 
@@ -55,94 +99,70 @@ void funcaoDisplay() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(-4, 6, -4, 6);
+	gluOrtho2D(left, right, bottom, top);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT);
 
-	gluLookAt(0, 20, 100, 0, 0, 100, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT);
 	
+	glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
 	bola.desenha();
+    /*glPushMatrix ();
+    	glTranslatef    (-1.5, 0.0, 0.0);
+    	glRotatef       (60.0, 1,0,0);
+    	glRotatef       (zRotated*2.0, 0,0,1);   // Red ball rotates at twice the rate of blue ball.
+    	glutSolidSphere (1.0, 50, 50);
+    glPopMatrix ();
+ 
+    glColor3f (0.1, 0.2, 0.8);              // Blue ball displaced to right.
+    glPushMatrix ();
+		glTranslatef    (1.5, 0.0, 0.0);
+		glRotatef       (60.0, 1,0,0);
+		glRotatef       (zRotated, 0,0,1);
+		glutSolidSphere (1.0, 20, 50);
+	glPopMatrix ();*/
+
+	glutSwapBuffers();
+	glFlush();
 }
 
 void funcaoKeyboard(unsigned char key, int x, int y) {
-/*
 	if(key == 'q') {
 		exit(-1);
 	}
-	if(!animacao) {
-		if(key == 'a') {
-			tAtual -= 0.01;
-		}
-		if(key == 'd') {
-			tAtual += 0.01;
-		}
-	}
-	if(key == 's')
-		animacao = 1 - animacao;
-	glutPostRedisplay();*/
+	glutPostRedisplay();
 }
 
 void temporizador() {
+	zRotated+=0.3;
 	glutPostRedisplay();
-	/*if(animacao) {
-		tAtual += 0.003*delta;
-		if(tAtual > 1) {
-			tAtual = 1;
-			delta = -1;
-		}
-		if(tAtual < 0) {
-			tAtual = 0;
-			delta = 1;
-		}
-	}*/
+}
+
+void funcaoMouseMotion(int x, int y) {
+
 }
 
 void funcaoMouse(int button, int state, int x, int y) {
-
-	/*GLint viewport[4];
-	GLdouble modelview[16];
-	GLdouble projection[16];
-	GLfloat winX, winY, winZ;
-	GLdouble worldX, worldY, worldZ;
-
-	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-	glGetDoublev(GL_PROJECTION_MATRIX, projection);
-	glGetIntegerv(GL_VIEWPORT, viewport);
-
-	winX = (float)x;
-	winY = (float)viewport[3] - (float)y;
-	winZ = 0;
-
-	gluUnProject(winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
-	if(button == GLUT_LEFT_BUTTON) {
-		vx[0] = worldX;
-		vy[0] = worldY;
-	}
-	if(button == GLUT_RIGHT_BUTTON) {
-		vx[2] = worldX;
-		vy[2] = worldY;
-	}*/
+	glutPostRedisplay();
 }
 
 int main(int argc, char **argv) {
-	
 	bola = Bola();
-
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(800, 800);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("hello world");
+	glutCreateWindow("Splines");
 	glutKeyboardFunc(funcaoKeyboard);
 	glutMouseFunc(funcaoMouse);
+	glutMotionFunc(funcaoMouseMotion);
 	glutDisplayFunc(funcaoDisplay);
 	glutIdleFunc(temporizador);
 	inicializacao();
 
 	glutMainLoop();
-
+	
 	return 0;
 }
 
