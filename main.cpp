@@ -15,6 +15,10 @@ double xcam=0;
 double zcam=0;
 double xbola=0,ybola=0,zbola=0;
 using namespace std;
+double rot = 0;
+//y: pra cima
+//x: pra dentro da tela
+//z: pra direita
 
 //vetor que contem as abscissas dos pontos
 vector<float> vx;
@@ -28,9 +32,11 @@ int pontoAtual = 0;
 const double ACEL_COLISAO = 10;
 const double ACEL_GRAVIDADE = 3;
 const double RAIO_ESFERA = 0.5;
-const int SLICES = 30; //quantidade de slices que dividirão a esfera
-const int RAIO_CILINDRO = 1;
-
+const int SLICES = 100; //quantidade de slices que dividirão a esfera
+const double RAIO_CILINDRO = 1;
+const double DISTANCIA_BOLA_CILINDRO = 1.5;
+const double RAIO_OBSTACULO = 0.6;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO;
+const double PI = 3.14159265359;
 class Bola{
 private:
 	double x, y, z;
@@ -43,7 +49,7 @@ public:
 	double getZ(){return z;}
 	void upd(double a, double b, double c){x=a,y=b,z=c;}
 	Bola(){
-		x = 0;
+		x = -2;
 		y = 0;
 		z = 0;
 		vx = 0;
@@ -68,8 +74,8 @@ public:
 			//glTranslatef(x, y, z);
 			glutSolidSphere(RAIO_ESFERA, SLICES, SLICES);
 		glPopMatrix();*/
-		upd(xbola, ybola, zbola);
-		
+		upd(xbola+DISTANCIA_BOLA_CILINDRO*cos(rot), ybola, zbola+DISTANCIA_BOLA_CILINDRO*sin(rot));
+		glColor3f(1, 0,0 );
 		glPushMatrix ();
 			glTranslatef(x, y, z);
 			//glRotatef       (zRotated, 0,0,1);
@@ -87,25 +93,107 @@ void inicializacao() {
 	glClearColor(0.5, 0.5, 0.5, 0);
 }
 
-//implementação da função spline (use a b-spline quadrática que consta nas notas de aula)
-float g(float t) {
-	return 0;
+void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=100){
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(x, y, z);
+	double anguloIni = (PI/180.0)*anguloIniDeg;
+	double anguloFim = (PI/180.0)*anguloFimDeg;
+	for(double angle = 0; angle <= anguloIni; angle += (2*PI)/partes){
+		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+	}
+	glEnd();
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(x, y, z);
+	for(double angle = anguloFim; angle <= 2*PI; angle += (2*PI)/partes){
+		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+	}
+	glEnd();
 }
 
-//retorna o ponto da spline s(t)
-float spline(vector<float> v, float t) {
-	return 0;
+void setorCilindrico(double x, double y, double z, double h, double raio, double anguloIniDeg, double anguloFimDeg, int partes=100){
+	setorCircular(x, y, z, raio, anguloIniDeg, anguloFimDeg, partes);
+	setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
+	double anguloIni = (PI/180.0)*anguloIniDeg;
+	double anguloFim = (PI/180.0)*anguloFimDeg;
+	double inc = (2*PI)/partes;
+	glColor3f(1, .5, .5);
+	for(double angle = 0; angle < anguloIni; angle += inc){
+		glBegin(GL_QUADS);
+		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+		glVertex3f(x+sin(angle)*raio, y-h, z+cos(angle)*raio);
+		glVertex3f(x+sin(angle+inc)*raio, y, z+cos(angle+inc)*raio);
+		glVertex3f(x+sin(angle+inc)*raio, y-h, z+cos(angle+inc)*raio);
+		glEnd();
+	}
+	glColor3f(0.5, .5, 1);
+	for(double angle = anguloIni; angle <= anguloFim; angle += inc){
+		glBegin(GL_QUADS);
+		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+		glVertex3f(x+sin(angle)*raio, y-h, z+cos(angle)*raio);
+		glVertex3f(x+sin(angle+inc)*raio, y, z+cos(angle+inc)*raio);
+		glVertex3f(x+sin(angle+inc)*raio, y-h, z+cos(angle+inc)*raio);
+		glEnd();
+	}
+	
+	glBegin(GL_QUADS);
+	glVertex3f(x, y, z);
+	glVertex3f(x, y-h, z);
+	glVertex3f(x+sin(anguloIni)*raio, y, z+cos(anguloIni)*raio);
+	glVertex3f(x+sin(anguloIni)*raio, y-h, z+cos(anguloIni)*raio);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+	glVertex3f(x, y, z);
+	glVertex3f(x, y-h, z);
+	glVertex3f(x+sin(anguloFim)*raio, y, z+cos(anguloFim)*raio);
+	glVertex3f(x+sin(anguloFim)*raio, y-h, z+cos(anguloFim)*raio);
+	glEnd();
+}
+
+void pizza(double x, double y, double z, double raio, double anguloIni, double anguloFim, int partes=100){
+	
+}
+
+//desenha circulo centrado em (x, y, z) com raio, paralelo ao plano XZ
+void circulo(double x, double y, double z, double raio, int partes=100){
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(x, y, z);
+	for(double angle = 0; angle <= 2*PI; angle+=(2*PI)/partes){
+		glVertex3f(x + sin(angle)*raio, y, z+cos(angle)*raio);
+	}
+	glEnd();
+}
+
+//desenha cilindro com topo em (x, y, z) e fundo em (x, y-h, z) com raio
+void cilindro(double x, double y, double z, double h, double raio){
+	circulo(x, y, z, raio);
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		glRotatef(90, 1, 0, 0);
+		gluCylinder(gluNewQuadric(), raio, raio, h, SLICES, SLICES);
+	glPopMatrix();
+	circulo(x, y-h, z, raio);
 }
 
 void desenhaCilindro(){
+	glColor3f(0, 1, 0);
+	cilindro(0, 0, 0, 200, 1);
 	/*glPushMatrix();
-		gluCylinder();
+		glTranslatef(0, 0, 0);
+		glRotatef(90, 1, 0, 0);
+		gluCylinder(gluNewQuadric(), 1, 1, 200, SLICES, SLICES);
 	glPopMatrix();*/
+}
 
+void desenhaObstaculos(){
+	glColor3f(0, 0, 1);
+	setorCilindrico(0, -2, 0, 1, RAIO_OBSTACULO, 90, 180);
 }
 
 void funcaoDisplay() {
-	glFrustum(-30, 30, -30, 30, 0.1, 200);
+	bola.upd(xbola+DISTANCIA_BOLA_CILINDRO*cos(rot), ybola, zbola+DISTANCIA_BOLA_CILINDRO*sin(rot));
+	//glFrustum(-300, 300, -300, 300, 0, 2000);
+	gluPerspective(180, 1, 0.001, 3000);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(-4, 4, -4, 4);
@@ -115,18 +203,20 @@ void funcaoDisplay() {
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
-	gluLookAt(xcam-.3,ycam-.01,zcam, 0,0,0, 0, 1, 0);
-	printf("(%f, %f, %f)\n", xbola, ybola, zbola);
+	gluLookAt(bola.getX()*(RAIO_ESFERA), bola.getY()-.1, bola.getZ()*(RAIO_ESFERA), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
+	//gluLookAt(bola.getX(),bola.getY()+.1,bola.getZ(), bola.getX(),bola.getY(), bola.getZ(), 0, 1, 0);
+	printf("(%f, %f, %f)\n", bola.getX(), bola.getY(), bola.getZ());
+	//desenhaCilindro();
 	bola.desenha();
-
+	desenhaObstaculos();
 	glutSwapBuffers();
 	glFlush();
 }
 
 void funcaoKeyboard(unsigned char key, int x, int y) {
-	//if(key == 'q') {
-	//	exit(-1);
-	//}
+	if(key == 'z') {
+		exit(-1);
+	}
 	if(key == 'a') xbola-=0.1;
 	if(key == 'q') xbola+=0.1;
 	if(key == 's') ybola-=0.1;
@@ -139,6 +229,8 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 	if(key == 't') ycam+=0.1;
 	if(key == 'h') zcam-=0.1;
 	if(key == 'y') zcam+=0.1;
+	if(key == 'x') rot-=0.1;
+	if(key == 'c') rot+=0.1;
 	glutPostRedisplay();
 }
 
