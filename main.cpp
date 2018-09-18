@@ -7,8 +7,6 @@
 #include <bits/stdc++.h>
 float tAtual = 2.0; //um ponto é renderizado na reta
 int delta = 1; //= 1 ou -1... variação positiva ou negativa de tAtual, quando animacao = 1
-int animacao = 1;
-float top = 6, bottom = -4, left = -4, right = 6;
 int showGuideLines = true;
 double ycam=0;
 double xcam=0;
@@ -38,7 +36,7 @@ const double RAIO_ESFERA = 0.5*escala;
 const int SLICES = 100; //quantidade de slices que dividirão a esfera
 const double RAIO_CILINDRO = 1*escala;
 const double DISTANCIA_BOLA_CILINDRO = 3*escala;
-const double RAIO_OBSTACULO = 2*escala;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO;
+const double RAIO_OBSTACULO = 2.5*escala;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO;
 const double PI = 3.14159265359;
 const double ALTURA_OBSTACULO = 1*escala;
 const double DISTANCIA_ENTRE_OBSTACULOS = 8*escala;
@@ -101,7 +99,7 @@ void inicializacao() {
 	glClearColor(0.5, 0.5, 0.5, 0);
 }
 
-void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=100){
+void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1000){
 	glBegin(GL_TRIANGLE_FAN);
 	glVertex3f(x, y, z);
 	glColor3f(0, 0, 1);
@@ -110,18 +108,18 @@ void setorCircular(double x, double y, double z, double raio, double anguloIniDe
 	double inc = (2*PI)/partes;
 	if(anguloIni > anguloFim) swap(anguloIni, anguloFim);
 	for(double angle = 0; angle <= anguloIni; angle += inc){
-		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
 	}
 	glEnd();
 	glBegin(GL_TRIANGLE_FAN);
 	glVertex3f(x, y, z);
 	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
-		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
+		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
 	}
 	glEnd();
 }
 
-void setorCilindrico(double x, double y, double z, double h, double raio, double anguloIniDeg, double anguloFimDeg, int partes=100){
+void setorCilindrico(double x, double y, double z, double h, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1000){
 	double anguloIni = (PI/180.0)*anguloIniDeg;
 	double anguloFim = (PI/180.0)*anguloFimDeg;
 	double inc = (2*PI)/partes;
@@ -132,8 +130,8 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	glBegin(GL_TRIANGLE_STRIP);
 	for(double angle = 0; angle <= anguloIni; angle += inc){
 
-		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
-		glVertex3f(x+sin(angle)*raio, y-h, z+cos(angle)*raio);			
+		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
+		glVertex3f(x-cos(angle)*raio, y-h, z-sin(angle)*raio);			
 		/*glBegin(GL_TRIANGLES);
 			glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
 			glVertex3f(x+sin(angle+inc)*raio, y-h, z+cos(angle+inc)*raio);
@@ -148,8 +146,8 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	//glColor3f(0, 0, 0);
 	glBegin(GL_TRIANGLE_STRIP);
 	for(double angle = anguloFim; angle < 2*PI-inc; angle += inc){
-		glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
-		glVertex3f(x+sin(angle)*raio, y-h, z+cos(angle)*raio);
+		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
+		glVertex3f(x-cos(angle)*raio, y-h, z-sin(angle)*raio);
 		
 		/*glBegin(GL_TRIANGLES);
 			glVertex3f(x+sin(angle)*raio, y, z+cos(angle)*raio);
@@ -166,26 +164,26 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	glBegin(GL_TRIANGLES);
 		glVertex3f(x, y, z);
 		glVertex3f(x, y-h, z);
-		glVertex3f(x+sin(anguloIni)*raio, y-h, z+cos(anguloIni)*raio);
+		glVertex3f(x-cos(anguloIni)*raio, y-h, z-sin(anguloIni)*raio);
 		glVertex3f(x, y, z);
-		glVertex3f(x+sin(anguloIni)*raio, y, z+cos(anguloIni)*raio);
-		glVertex3f(x+sin(anguloIni)*raio, y-h, z+cos(anguloIni)*raio);
+		glVertex3f(x-cos(anguloIni)*raio, y, z-sin(anguloIni)*raio);
+		glVertex3f(x-cos(anguloIni)*raio, y-h, z-sin(anguloIni)*raio);
 	glEnd();
 	
 	//glColor3f(1, 1, 1);
 	glBegin(GL_TRIANGLES);
 		glVertex3f(x, y, z);
 		glVertex3f(x, y-h, z);
-		glVertex3f(x+sin(anguloFim)*raio, y-h, z+cos(anguloFim)*raio);
+		glVertex3f(x-cos(anguloFim)*raio, y-h, z-sin(anguloFim)*raio);
 		glVertex3f(x, y, z);
-		glVertex3f(x+sin(anguloFim)*raio, y, z+cos(anguloFim)*raio);
-		glVertex3f(x+sin(anguloFim)*raio, y-h, z+cos(anguloFim)*raio);
+		glVertex3f(x-cos(anguloFim)*raio, y, z-sin(anguloFim)*raio);
+		glVertex3f(x-cos(anguloFim)*raio, y-h, z-sin(anguloFim)*raio);
 	glEnd();
 
 }
 
 //desenha circulo centrado em (x, y, z) com raio, paralelo ao plano XZ
-void circulo(double x, double y, double z, double raio, int partes=100){
+void circulo(double x, double y, double z, double raio, int partes=1000){
 	glBegin(GL_TRIANGLE_FAN);
 	glVertex3f(x, y, z);
 	for(double angle = 0; angle <= 2*PI; angle+=(2*PI)/partes){
@@ -230,7 +228,12 @@ bool colisao(){
 			return 1;
 		}*/
 		if(bola.getY()+RAIO_ESFERA < -DISTANCIA_ENTRE_OBSTACULOS*i-1-ALTURA_OBSTACULO) continue;
-		if(bola.getY()+RAIO_ESFERA <= -DISTANCIA_ENTRE_OBSTACULOS*i-1 && (rotgraus <= obstaculos[i].first || rotgraus >= obstaculos[i].second)) return 1;
+		if(bola.getY()+RAIO_ESFERA <= -DISTANCIA_ENTRE_OBSTACULOS*i-1 && (rotgraus <= obstaculos[i].first || rotgraus >= obstaculos[i].second)) {
+			/*cout << "COLIDIU EM " << i << endl;
+			cout << "setor: " << "("<<obstaculos[i].first<<", "<<obstaculos[i].second<<")\n";
+			cout << "rot: " << rotgraus << endl;*/
+			return 1;
+		}
 	}
 	return 0;
 }
@@ -256,7 +259,7 @@ void funcaoDisplay() {
 	glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
 	gluLookAt(bola.getX()*(RAIO_ESFERA+.4), bola.getY()+.1, bola.getZ()*(RAIO_ESFERA+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	//gluLookAt(bola.getX(),bola.getY()+.1,bola.getZ(), bola.getX(),bola.getY(), bola.getZ(), 0, 1, 0);
-	printf("(%f, %f, %f)\n", bola.getX(), bola.getY(), bola.getZ());
+	//printf("(%f, %f, %f)\n", bola.getX(), bola.getY(), bola.getZ());
 	desenhaObstaculos();
 	//desenhaCilindro();
 	bola.desenha();
@@ -268,7 +271,7 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 	if(key == 'z') {
 		exit(-1);
 	}
-	if(key == 'a') xbola-=0.1;
+	/*if(key == 'a') xbola-=0.1;
 	if(key == 'q') xbola+=0.1;
 	if(key == 's') ybola-=0.1;
 	if(key == 'w') ybola+=0.1;
@@ -279,10 +282,11 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 	if(key == 'g') ycam-=0.1;
 	if(key == 't') ycam+=0.1;
 	if(key == 'h') zcam-=0.1;
-	if(key == 'y') zcam+=0.1;
+	if(key == 'y') zcam+=0.1;*/
 	if(key == 'x') rot+=0.1;
 	if(key == 'c') rot-=0.1;
 	if(rot >= 2*PI) rot = 0;
+	if(rot < 0) rot = 2*PI;
 	if(key == ' ') {
 		bola.colide();
 	}
@@ -304,12 +308,13 @@ void funcaoMouse(int button, int state, int x, int y) {
 }
 
 int main(int argc, char **argv) {
-	obstaculos[0] = make_pair(90, 180);
+	srand(time(NULL));
+	obstaculos[0] = make_pair(0, 90);
 	for(int i = 1; i < 50; i++){
-		double a = rand()/double(RAND_MAX);
-		double b = rand()/double(RAND_MAX);
-		if(a > b) swap(a, b);
-		obstaculos[i] = make_pair(a*360, max(a+45, b*360));
+		double a = rand()%360;
+		double b = a + 30 + rand()%(330-int(a));
+		obstaculos[i] = make_pair(a, b);
+		//obstaculos[i] = make_pair(90, 180);
 	}
 	
 	bola = Bola();
