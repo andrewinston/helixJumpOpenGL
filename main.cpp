@@ -30,7 +30,7 @@ int pontoAtual = 0;
 pair<double, double> obstaculos[50];
 
 double escala = .2;
-const double ACEL_COLISAO = .15*escala;
+const double ACEL_COLISAO = .18*escala;
 const double ACEL_GRAVIDADE = 0.01*escala;
 const double RAIO_ESFERA = 0.5*escala;
 const int SLICES = 100; //quantidade de slices que dividirão a esfera
@@ -39,8 +39,8 @@ const double DISTANCIA_BOLA_CILINDRO = 3*escala;
 const double RAIO_OBSTACULO = 2.5*escala;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO;
 const double PI = 3.14159265359;
 const double ALTURA_OBSTACULO = 1*escala;
-const double DISTANCIA_ENTRE_OBSTACULOS = 8*escala;
-const double VELOCIDADE_MAXIMA = .2*escala;
+const double DISTANCIA_ENTRE_OBSTACULOS = 10*escala;
+const double VELOCIDADE_MAXIMA = 1*escala;
 class Bola{
 private:
 	double x, y, z;
@@ -285,8 +285,8 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 	if(key == 'y') zcam+=0.1;*/
 	if(key == 'x') rot+=0.1;
 	if(key == 'c') rot-=0.1;
-	if(rot >= 2*PI) rot = 0;
-	if(rot < 0) rot = 2*PI;
+	if(rot > 2*PI) rot -= 2*PI;
+	if(rot < 0) rot += 2*PI;
 	if(key == ' ') {
 		bola.colide();
 	}
@@ -308,11 +308,12 @@ void funcaoMouse(int button, int state, int x, int y) {
 }
 
 int main(int argc, char **argv) {
-	srand(time(NULL));
+	//srand(time(NULL));
 	obstaculos[0] = make_pair(0, 90);
 	for(int i = 1; i < 50; i++){
 		double a = rand()%360;
-		double b = a + 30 + rand()%(330-int(a));
+		double b = a + 60 + rand()%(300-int(a));
+		if(a > b) swap(a, b);
 		obstaculos[i] = make_pair(a, b);
 		//obstaculos[i] = make_pair(90, 180);
 	}
