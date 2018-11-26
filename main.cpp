@@ -19,7 +19,7 @@ double rot = 0;
 double escala = .2;
 const double ACEL_COLISAO = .16*escala;
 const double ACEL_GRAVIDADE = 0.01*escala;
-const double RAIO_ESFERA = 0.2*escala;
+const double RAIO_ESFERA = 0.5*escala;
 const int SLICES = 100; //quantidade de slices que dividirão a esfera
 const double RAIO_CILINDRO = 1*escala;
 const double DISTANCIA_BOLA_CILINDRO = 4*escala;
@@ -67,15 +67,74 @@ public:
 	}
 	void desenha(){
 		upd(DISTANCIA_BOLA_CILINDRO*cos(rot), y, DISTANCIA_BOLA_CILINDRO*sin(rot));
+
+		GLfloat params[] = {1, 0, 0, .2};
+	
+		glEnable(GL_LIGHTING);
+		glLightfv(GL_LIGHT0, GL_AMBIENT, params);
+		glLightfv(GL_LIGHT0, GL_DIFFUSE, params);
+	 	glLightfv(GL_LIGHT0, GL_SPECULAR, params);
+	 	glLightfv(GL_LIGHT0, GL_POSITION, params);
+		glEnable(GL_LIGHT0);
+		
 		glColor3f(1, 0, 0);
 		glPushMatrix ();
 			glTranslatef(x, y, z);
 			glutSolidSphere (RAIO_ESFERA, SLICES, SLICES);
 		glPopMatrix ();
+		
+		glDisable(GL_LIGHT0);
+		glDisable(GL_LIGHTING);
 	}
 
 };
 
+
+GLuint getTexture(const char *filename, int width, int height){
+	GLuint texture;
+	unsigned char *data;
+	FILE *file;
+	
+	file = fopen(filename, "rb");
+	if(file == NULL) return 0;
+	
+	data = (unsigned char*) malloc(width * height * 4);
+     
+     // read texture data
+    fread(data, width * height * 4, 1, file);
+    fclose(file);
+     
+    // allocate a texture name
+    glGenTextures(1, &texture);
+    
+    // select our current texture
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    // select modulate to mix texture with color for shading
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_DECAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_DECAL);
+    
+    // when texture area is small, bilinear filter the closest mipmap
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+     // when texture area is large, bilinear filter the first mipmap
+  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+     
+     // texture should tile
+   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+     
+     // build our texture mipmaps
+   	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+     
+     // free buffer
+   	free(data);
+     
+   	return texture;
+	
+	
+}
 
 Bola bola;
 double zRotated = 0;
@@ -109,8 +168,17 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	double anguloFim = (PI/180.0)*anguloFimDeg;
 	double inc = (2*PI)/partes;
 
+	GLfloat params[] = {0, 0, 1, 1};
+
+	glEnable(GL_LIGHTING);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, params);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, params);
+ 	glLightfv(GL_LIGHT1, GL_SPECULAR, params);
+ 	glLightfv(GL_LIGHT1, GL_POSITION, params);
+	glEnable(GL_LIGHT1);
+
 	setorCircular(x, y, z, raio, anguloIniDeg, anguloFimDeg, partes);
-	setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
+
 	glColor3f(0, 0, 1);
 	glBegin(GL_TRIANGLE_STRIP);
 	for(double angle = 0; angle <= anguloIni; angle += inc){
@@ -128,7 +196,7 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	
 	}
 	glEnd();
-
+	
 	glBegin(GL_TRIANGLES);
 		glVertex3f(x, y, z);
 		glVertex3f(x, y-h, z);
@@ -146,6 +214,13 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 		glVertex3f(x-cos(anguloFim)*raio, y, z-sin(anguloFim)*raio);
 		glVertex3f(x-cos(anguloFim)*raio, y-h, z-sin(anguloFim)*raio);
 	glEnd();
+	
+	glDisable(GL_LIGHT1);
+	glDisable(GL_LIGHTING);
+	
+	
+	//setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
+	
 
 }
 
@@ -195,7 +270,7 @@ bool colisao(){
 }
 
 void funcaoDisplay() {
-	bola.move();
+	glCullFace(GL_FRONT);
 	if(colisao()){
 		bola.colide();
 	}
@@ -206,9 +281,15 @@ void funcaoDisplay() {
 	glLoadIdentity();
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
+	GLfloat params[] = {1, 0, 0, .1};
+
+	glColor3f (1, 0, 0);
 	gluLookAt(bola.getX()*(RAIO_ESFERA+.4), bola.getY()+.1, bola.getZ()*(RAIO_ESFERA+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
+
+	
 	desenhaObstaculos();
+
+	bola.move();
 	bola.desenha();
 	glutSwapBuffers();
 	glFlush();
