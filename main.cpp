@@ -16,7 +16,7 @@ double rot = 0;
 //z: pra direita
 
 
-double escala = .2;
+double escala = .18;
 const double ACEL_COLISAO = .15*escala;
 const double ACEL_GRAVIDADE = 0.01*escala;
 const double RAIO_ESFERA = 0.5*escala;
@@ -153,7 +153,7 @@ void inicializacao() {
 void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1002){
 	glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
-		//glBindTexture(GL_TEXTURE_2D, textura_pedra);
+		glBindTexture(GL_TEXTURE_2D, textura_pedra);
 		glBegin(GL_TRIANGLE_FAN);
 			glTexCoord2f(.5, .5);
 			glVertex3f(x, y, z);
@@ -184,8 +184,8 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	double anguloFim = (PI/180.0)*anguloFimDeg;
 	double inc = (2*PI)/partes;
 
-	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, textura_pedra);
+	glEnable(GL_TEXTURE_2D);
 
 	glColor3f(1, 0, 1);
 	setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
@@ -201,7 +201,7 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 		glVertex3f(x-cos(anguloIni)*raio, y, z-sin(anguloIni)*raio);
 	glEnd();
 	
-	glBegin(GL_TRIANGLES);
+	glBegin(GL_TRIANGLE_FAN);
 		glTexCoord2f(0.1, 0.5);
 		glVertex3f(x, y, z);
 		glTexCoord2f(0.1, 0.2);
@@ -276,7 +276,7 @@ bool colisao(){
 	double rotgraus = (180.0/PI)*rot;
 	for(int i = 0; i < 50; i++){
 		if(bola.getY()+RAIO_ESFERA < -DISTANCIA_ENTRE_OBSTACULOS*i-1-ALTURA_OBSTACULO) continue;
-		if(bola.getY()+escala*RAIO_ESFERA <= -DISTANCIA_ENTRE_OBSTACULOS*i-1 && (rotgraus <= obstaculos[i].first || rotgraus >= obstaculos[i].second)) {
+		if(bola.getY()+escala*RAIO_ESFERA*5 <= -DISTANCIA_ENTRE_OBSTACULOS*i-1 && (rotgraus <= obstaculos[i].first || rotgraus >= obstaculos[i].second)) {
 			return 1;
 		}
 	}
