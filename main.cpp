@@ -17,7 +17,7 @@ double rot = 0;
 
 
 double escala = .18;
-const double ACEL_COLISAO = .15*escala;
+const double ACEL_COLISAO = .19*escala;
 const double ACEL_GRAVIDADE = 0.01*escala;
 const double RAIO_ESFERA = 0.5*escala;
 const int SLICES = 100; //quantidade de slices que dividirão a esfera
@@ -27,33 +27,52 @@ const double RAIO_OBSTACULO = 2.5*escala;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO
 const double PI = 3.14159265359;
 const double ALTURA_OBSTACULO = 1*escala;
 const double DISTANCIA_ENTRE_OBSTACULOS = 4*escala;
-const double VELOCIDADE_MAXIMA = 1*escala;
-const int QUANTIDADE_DE_OBSTACULOS = 200;
+const double VELOCIDADE_MAXIMA = .3*escala;
+const int QUANTIDADE_DE_OBSTACULOS = 200005;
+const int BOUNCE_ANIMATION_FRAMES = 3;
 
 
-pair<double, double> obstaculos[QUANTIDADE_DE_OBSTACULOS];
+pair<double, double> obstaculos[200005];
 GLuint textura_pedra;
 class Bola{
 private:
 	double x, y, z;
 	double vx, vy, vz;
-
+	int bounceAnimation;
+	
+	void applyBounceAnimation(){
+		//cout << "bounceAnimation = " << bounceAnimation << endl;
+		if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES/2) {
+			double stretch = .5*-2*bounceAnimation/(double)BOUNCE_ANIMATION_FRAMES;
+			glScalef(1, 1+stretch, 1);
+		}
+		else if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES) {
+			double stretch = -.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES;
+			glScalef(1, 1-.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES, 1);
+		}
+		bounceAnimation+=1;
+		if(bounceAnimation > BOUNCE_ANIMATION_FRAMES) {
+			bounceAnimation = 0;
+			move();
+		}
+	}
+	
 public:
-
 	double getX(){return x;}
 	double getY(){return y;}
 	double getZ(){return z;}
-	void upd(double a, double b, double c){x=a,y=b,z=c;}
+	void upd(double a, double b, double c){x=a,y=b,z=c;} //sets position of the ball to (a, b, c)
 	Bola(){
-		x = -2;
-		y = 0;
+		bounceAnimation = 0;
+		x = -2*escala;
+		y = 1*escala;
 		z = 0;
 		vx = 0;
 		vy = 0;
 		vz = 0;
 	}
 	void setRot(double _rot){rot = _rot;}
-	void move(){
+	void move(){ //applies effects of acceleration to ball
 		acelera();
 		x += vx;
 		y += vy;
@@ -61,12 +80,14 @@ public:
 	}
 	void colide(){
 		vy = ACEL_COLISAO;
+		if(!bounceAnimation) bounceAnimation = 1;
 	}
-	void acelera(){
+	void acelera(){ //accelerates ball
 		vy -= ACEL_GRAVIDADE;
 		if(vy < -VELOCIDADE_MAXIMA) vy = -VELOCIDADE_MAXIMA;
 	}
 	void desenha(){
+		if(!bounceAnimation) move();
 		upd(DISTANCIA_BOLA_CILINDRO*cos(rot), y, DISTANCIA_BOLA_CILINDRO*sin(rot));
 
 		GLfloat params[] = {1, 0, 0, .2};
@@ -81,6 +102,8 @@ public:
 		glColor3f(1, 0, 0);
 		glPushMatrix ();
 			glTranslatef(x, y, z);
+			if(!bounceAnimation) glScalef(1, max(1.0, 1+6*(-vy)), 1);
+			else applyBounceAnimation();
 			glutSolidSphere (RAIO_ESFERA, SLICES, SLICES);
 		glPopMatrix ();
 		
@@ -147,7 +170,7 @@ void inicializacao() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     textura_pedra = getTexture("textura_pedra.bmp", 1024, 1024);
     //glEnable(GL_TEXTURE_2D);
-	glClearColor(0.5, 0.5, 0.5, 0);
+	glClearColor(0.5, 0.8, 1, 0);
 }
 
 void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1002){
@@ -157,7 +180,7 @@ void setorCircular(double x, double y, double z, double raio, double anguloIniDe
 		glBegin(GL_TRIANGLE_FAN);
 			glTexCoord2f(.5, .5);
 			glVertex3f(x, y, z);
-			glColor3f(0, 0, 1);
+			glColor3f(.3, .3, .3);
 			double anguloIni = (PI/180.0)*anguloIniDeg;
 			double anguloFim = (PI/180.0)*anguloFimDeg;
 			double inc = (2*PI)/partes;
@@ -187,7 +210,6 @@ void setorCilindrico(double x, double y, double z, double h, double raio, double
 	glBindTexture(GL_TEXTURE_2D, textura_pedra);
 	glEnable(GL_TEXTURE_2D);
 
-	glColor3f(1, 0, 1);
 	setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
 	
 	glBegin(GL_TRIANGLE_FAN);
@@ -264,23 +286,44 @@ void desenhaCilindro(){
 	cilindro(0, 0, 0, 200, 1);
 }
 
+
+int getObstacle(double ballPosition){
+	int ini = 0;
+	int fim = QUANTIDADE_DE_OBSTACULOS;
+	while(fim > ini){
+		//cout << "("<<ini<<", "<<fim<<")\n";
+		int mid = (ini+fim+1)/2;
+		double pos = -DISTANCIA_ENTRE_OBSTACULOS*mid;
+		if(pos <= ballPosition){
+			fim = mid-1;
+		}
+		else{
+			//cout << "pos = " << pos << endl;
+			//cout << "ballPosition = " << ballPosition << endl;
+			ini = mid;
+		}
+	}
+	return ini;
+}
+
 void desenhaObstaculos(){
 	glColor3f(0, 0, 1);
-	for(int i = 0; i < 50; i++){
-		setorCilindrico(0, -DISTANCIA_ENTRE_OBSTACULOS*i-1, 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstaculos[i].first, obstaculos[i].second);
+	int ini = getObstacle(bola.getY());
+	for(int i = max(0, ini-4); i < ini+5; i++){
+		setorCilindrico(0, -DISTANCIA_ENTRE_OBSTACULOS*i, 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstaculos[i].first, obstaculos[i].second);
 	}
 }
 
 bool colisao(){
+	double infBola = bola.getY()+RAIO_ESFERA*2;
 	bool colidiu = 0;
 	double rotgraus = (180.0/PI)*rot;
-	for(int i = 0; i < 50; i++){
-		if(bola.getY()+RAIO_ESFERA < -DISTANCIA_ENTRE_OBSTACULOS*i-1-ALTURA_OBSTACULO) continue;
-		if(bola.getY()+escala*RAIO_ESFERA*5 <= -DISTANCIA_ENTRE_OBSTACULOS*i-1 && (rotgraus <= obstaculos[i].first || rotgraus >= obstaculos[i].second)) {
-			return 1;
-		}
+	int indexObstacle = getObstacle(infBola);
+	double posObstaculo = -DISTANCIA_ENTRE_OBSTACULOS*indexObstacle;
+	if(infBola <= posObstaculo && infBola >= posObstaculo-ALTURA_OBSTACULO && (rotgraus <= obstaculos[indexObstacle].first || rotgraus >= obstaculos[indexObstacle].second)) {
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 void funcaoDisplay() {
@@ -298,7 +341,7 @@ void funcaoDisplay() {
 	GLfloat params[] = {1, 0, 0, .1};
 
 	glColor3f (1, 0, 0);
-	bola.move();
+	//bola.move();
 
 	gluLookAt(bola.getX()*(RAIO_ESFERA+.4), bola.getY()+.1, bola.getZ()*(RAIO_ESFERA+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	
@@ -342,7 +385,7 @@ int main(int argc, char **argv) {
 	//obstaculos[0] = make_pair(0, 90);
 	for(int i = 0; i < QUANTIDADE_DE_OBSTACULOS; i++){
 		double a = rand()%360;
-		double b = a + 60 + rand()%(300-int(a));
+		double b = a + 60 + rand()%(360-int(a));
 		if(a > b) swap(a, b);
 		obstaculos[i] = make_pair(a, b);
 	}
