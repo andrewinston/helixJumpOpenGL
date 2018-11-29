@@ -340,10 +340,8 @@ void funcaoDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	GLfloat params[] = {1, 0, 0, .1};
 
-	glColor3f (1, 0, 0);
-	//bola.move();
 
-	gluLookAt(bola.getX()*(RAIO_ESFERA+.4), bola.getY()+.1, bola.getZ()*(RAIO_ESFERA+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
+	gluLookAt(bola.getX()*(RAIO_ESFERA+.5), bola.getY()+.07, bola.getZ()*(RAIO_ESFERA+.5), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	
 	desenhaObstaculos();
 	bola.desenha();
@@ -384,8 +382,8 @@ void funcaoMouse(int button, int state, int x, int y) {
 int main(int argc, char **argv) {
 	//obstaculos[0] = make_pair(0, 90);
 	for(int i = 0; i < QUANTIDADE_DE_OBSTACULOS; i++){
-		double a = rand()%360;
-		double b = a + 60 + rand()%(360-int(a));
+		double a = rand()%300;
+		double b = a + 60 + rand()%(301-int(a));
 		if(a > b) swap(a, b);
 		obstaculos[i] = make_pair(a, b);
 	}
