@@ -29,7 +29,7 @@ const double ALTURA_OBSTACULO = 1*escala;
 const double DISTANCIA_ENTRE_OBSTACULOS = 4*escala;
 const double VELOCIDADE_MAXIMA = .3*escala;
 const int QUANTIDADE_DE_OBSTACULOS = 200005;
-const int BOUNCE_ANIMATION_FRAMES = 3;
+const int BOUNCE_ANIMATION_FRAMES = 8;
 
 
 pair<double, double> obstaculos[200005];
@@ -40,15 +40,21 @@ private:
 	double vx, vy, vz;
 	int bounceAnimation;
 	
+	double calcStretch(int frame){
+		frame--;
+		double x = PI*(frame/(double)(BOUNCE_ANIMATION_FRAMES-1));
+		return 0.5*sin(x);
+	}
+	
 	void applyBounceAnimation(){
 		//cout << "bounceAnimation = " << bounceAnimation << endl;
 		if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES/2) {
-			double stretch = .5*-2*bounceAnimation/(double)BOUNCE_ANIMATION_FRAMES;
-			glScalef(1, 1+stretch, 1);
+			//double stretch = .5*-2*bounceAnimation/(double)BOUNCE_ANIMATION_FRAMES;
+			glScalef(1, 1-calcStretch(bounceAnimation), 1);
 		}
 		else if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES) {
-			double stretch = -.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES;
-			glScalef(1, 1-.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES, 1);
+			//double stretch = -.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES;
+			glScalef(1, 1-calcStretch(bounceAnimation), 1);
 		}
 		bounceAnimation+=1;
 		if(bounceAnimation > BOUNCE_ANIMATION_FRAMES) {
@@ -61,6 +67,7 @@ public:
 	double getX(){return x;}
 	double getY(){return y;}
 	double getZ(){return z;}
+	double getVy(){return vy;}
 	void upd(double a, double b, double c){x=a,y=b,z=c;} //sets position of the ball to (a, b, c)
 	Bola(){
 		bounceAnimation = 0;
@@ -306,24 +313,28 @@ int getObstacle(double ballPosition){
 	return ini;
 }
 
+double calcPosObstacle(int index){
+	return -DISTANCIA_ENTRE_OBSTACULOS*index;
+}
+
 void desenhaObstaculos(){
 	glColor3f(0, 0, 1);
 	int ini = getObstacle(bola.getY());
 	for(int i = max(0, ini-4); i < ini+5; i++){
-		setorCilindrico(0, -DISTANCIA_ENTRE_OBSTACULOS*i, 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstaculos[i].first, obstaculos[i].second);
+		setorCilindrico(0, calcPosObstacle(i), 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstaculos[i].first, obstaculos[i].second);
 	}
+}
+
+bool checkCollision(double posBall, int indexObstacle, double rotDeg){
+	double posObstacle = calcPosObstacle(indexObstacle);
+	return posBall <= posObstacle && posBall >= posObstacle-ALTURA_OBSTACULO && (rotDeg <= obstaculos[indexObstacle].first || rotDeg >= obstaculos[indexObstacle].second);
 }
 
 bool colisao(){
 	double infBola = bola.getY()+RAIO_ESFERA*2;
-	bool colidiu = 0;
 	double rotgraus = (180.0/PI)*rot;
 	int indexObstacle = getObstacle(infBola);
-	double posObstaculo = -DISTANCIA_ENTRE_OBSTACULOS*indexObstacle;
-	if(infBola <= posObstaculo && infBola >= posObstaculo-ALTURA_OBSTACULO && (rotgraus <= obstaculos[indexObstacle].first || rotgraus >= obstaculos[indexObstacle].second)) {
-		return true;
-	}
-	return false;
+	return checkCollision(infBola, indexObstacle, rotgraus) || checkCollision(infBola+bola.getVy(), getObstacle(infBola+bola.getVy()), rotgraus);
 }
 
 void funcaoDisplay() {
