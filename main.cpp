@@ -20,7 +20,6 @@ double escala = .18;
 const double ACEL_COLISAO = .19*escala;
 const double ACEL_GRAVIDADE = 0.01*escala;
 const double RAIO_ESFERA = 0.5*escala;
-const int SLICES = 100; //quantidade de slices que dividirão a esfera
 const double RAIO_CILINDRO = 1*escala;
 const double DISTANCIA_BOLA_CILINDRO = 4*escala;
 const double RAIO_OBSTACULO = 2.5*escala;//RAIO_CILINDRO+DISTANCIA_BOLA_CILINDRO;
@@ -30,12 +29,13 @@ const double DISTANCIA_ENTRE_OBSTACULOS = 4*escala;
 const double VELOCIDADE_MAXIMA = .3*escala;
 const int QUANTIDADE_DE_OBSTACULOS = 200005;
 const int BOUNCE_ANIMATION_FRAMES = 8;
+const int SLICES = 100;
 
-
-pair<double, double> obstaculos[200005];
+pair<double, double> obstacles[200005];
 GLuint textura_pedra;
 class Bola{
 private:
+	int slices; //quantidade de slices que dividirão a esfera
 	double x, y, z;
 	double vx, vy, vz;
 	int bounceAnimation;
@@ -70,6 +70,7 @@ public:
 	double getVy(){return vy;}
 	void upd(double a, double b, double c){x=a,y=b,z=c;} //sets position of the ball to (a, b, c)
 	Bola(){
+		slices = SLICES;
 		bounceAnimation = 0;
 		x = -2*escala;
 		y = 1*escala;
@@ -111,7 +112,7 @@ public:
 			glTranslatef(x, y, z);
 			if(!bounceAnimation) glScalef(1, max(1.0, 1+6*(-vy)), 1);
 			else applyBounceAnimation();
-			glutSolidSphere (RAIO_ESFERA, SLICES, SLICES);
+			glutSolidSphere (RAIO_ESFERA, slices, slices);
 		glPopMatrix ();
 		
 		glDisable(GL_LIGHT0);
@@ -168,6 +169,10 @@ GLuint getTexture(const char *filename, int width, int height){
 
 Bola bola;
 double zRotated = 0;
+
+double convertRadToDeg(double rad){
+	return rad*180.0/PI;
+}
 
 void inicializacao() {
 	glEnable(GL_DEPTH_TEST);
@@ -321,13 +326,13 @@ void desenhaObstaculos(){
 	glColor3f(0, 0, 1);
 	int ini = getObstacle(bola.getY());
 	for(int i = max(0, ini-4); i < ini+5; i++){
-		setorCilindrico(0, calcPosObstacle(i), 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstaculos[i].first, obstaculos[i].second);
+		setorCilindrico(0, calcPosObstacle(i), 0, ALTURA_OBSTACULO, RAIO_OBSTACULO, obstacles[i].first, obstacles[i].second);
 	}
 }
 
 bool checkCollision(double posBall, int indexObstacle, double rotDeg){
 	double posObstacle = calcPosObstacle(indexObstacle);
-	return posBall <= posObstacle && posBall >= posObstacle-ALTURA_OBSTACULO && (rotDeg <= obstaculos[indexObstacle].first || rotDeg >= obstaculos[indexObstacle].second);
+	return posBall <= posObstacle && posBall >= posObstacle-ALTURA_OBSTACULO && (rotDeg <= obstacles[indexObstacle].first || rotDeg >= obstacles[indexObstacle].second);
 }
 
 bool colisao(){
@@ -361,12 +366,20 @@ void funcaoDisplay() {
 	glFlush();
 }
 
+bool checkRotation(double rotation){
+	int indexObstacle = getObstacle(bola.getY());
+	double rotDeg = convertRadToDeg(rotation);
+	cout << "y = " << bola.getY() << endl;
+	cout << "[" << calcPosObstacle(indexObstacle) << ", " << calcPosObstacle(indexObstacle)-ALTURA_OBSTACULO << "]\n";
+	return !((rotDeg > obstacles[indexObstacle].second || rotDeg < obstacles[indexObstacle].first) && bola.getY() < calcPosObstacle(indexObstacle)-ALTURA_OBSTACULO && bola.getY() > calcPosObstacle(indexObstacle)-2*ALTURA_OBSTACULO);
+}
+
 void funcaoKeyboard(unsigned char key, int x, int y) {
 	if(key == 'z') {
 		exit(-1);
 	}
-	if(key == 'x') rot+=0.1;
-	if(key == 'c') rot-=0.1;
+	if(key == 'x' && checkRotation(rot+.1)) rot+=0.1;
+	if(key == 'c' && checkRotation(rot-.1)) rot-=0.1;
 	if(rot > 2*PI) rot -= 2*PI;
 	if(rot < 0) rot += 2*PI;
 	if(key == ' ') {
@@ -391,12 +404,12 @@ void funcaoMouse(int button, int state, int x, int y) {
 }
 
 int main(int argc, char **argv) {
-	//obstaculos[0] = make_pair(0, 90);
+	//obstacles[0] = make_pair(0, 90);
 	for(int i = 0; i < QUANTIDADE_DE_OBSTACULOS; i++){
 		double a = rand()%300;
 		double b = a + 60 + rand()%(301-int(a));
 		if(a > b) swap(a, b);
-		obstaculos[i] = make_pair(a, b);
+		obstacles[i] = make_pair(a, b);
 	}
 	
 	bola = Bola();
