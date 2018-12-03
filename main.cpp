@@ -5,7 +5,6 @@
 #include <string.h>
 #include <vector>
 #include <bits/stdc++.h>
-#include <ghiplus.h>
 double ycam=0;
 double xcam=0;
 double zcam=0;
@@ -31,15 +30,15 @@ const int OBSTACLE_COUNT = 100;
 const int BOUNCE_ANIMATION_FRAMES = 8;
 const int SLICES = 100;
 const double STRETCH_BY_SPEED_FACTOR = 6;
+const int ROCK_TEXTURE_INDEX = 0;
+const int LAVA_TEXTURE_INDEX = 1;
+
 
 pair<double, double> obstacles[200005];
 vector<pair<double, double> > obstacle_lava_sectors[200005];
 GLuint rock_texture;
 GLuint lava_texture;
 GLuint *textures = new GLuint[2];
-
-const int ROCK_TEXTURE = 1;
-const int LAVA_TEXTURE = 2;
 
 class Bola{
 private:
@@ -55,13 +54,10 @@ private:
 	}
 	
 	void applyBounceAnimation(){
-		//cout << "bounceAnimation = " << bounceAnimation << endl;
 		if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES/2) {
-			//double stretch = .5*-2*bounceAnimation/(double)BOUNCE_ANIMATION_FRAMES;
 			glScalef(1, 1-calcStretch(bounceAnimation), 1);
 		}
 		else if(bounceAnimation <= BOUNCE_ANIMATION_FRAMES) {
-			//double stretch = -.5*(BOUNCE_ANIMATION_FRAMES-bounceAnimation)/(double)BOUNCE_ANIMATION_FRAMES;
 			glScalef(1, 1-calcStretch(bounceAnimation), 1);
 		}
 		bounceAnimation+=1;
@@ -128,13 +124,25 @@ public:
 
 };
 
+double convertRadToDeg(double rad){
+	return rad*180.0/PI;
+}
 
-GLuint* getTextures(vector<char*> filenames, int width=1024, int height=1024){
+double convertDegToRad(double deg){
+	return deg*PI/180.0;
+}
+
+
+
+Bola bola;
+double zRotated = 0;
+
+GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, int height=1024){
 	
 	GLuint *textures;
-	glGenTextures(filenames.size(), textures);
+	glGenTextures(qt_textures, textures);
 	
-	for(int i = 0; i < filenames.size(); i++){
+	for(int i = 0; i < qt_textures; i++){
 		GLuint texture;
 		unsigned char *data;
 		
@@ -147,76 +155,30 @@ GLuint* getTextures(vector<char*> filenames, int width=1024, int height=1024){
 		
 		size_t sz = fread(data, width * height * 4, 1, file);
 		fclose(file);
+		
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_DECAL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_DECAL);
+		
+		// when texture area is small, bilinear filter the closest mipmap
+		/*glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		 // when texture area is large, bilinear filter the first mipmap
+	  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		 
+		 // texture should tile
+	   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
+		 
+		 // build our texture mipmaps
+	   	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		
 		free(data);
 	}
-	GLuint texture;
-	unsigned char *data;
-	FILE *file;
-	
-	file = fopen(filename, "rb");
-	if(file == NULL) return 0;
-	data = (unsigned char*) malloc(width * height * 4);
      
-     // read texture data
-    size_t sz = fread(data, width * height * 4, 1, file);
-    fclose(file);
-     
-    // allocate a texture name
-    glGenTextures(1, &texture);
-    
-    // select our current texture
-    glBindTexture(GL_TEXTURE_2D, texture);
-    
-    // select modulate to mix texture with color for shading
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_DECAL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_DECAL);
-    
-    // when texture area is small, bilinear filter the closest mipmap
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-     // when texture area is large, bilinear filter the first mipmap
-  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-     
-     // texture should tile
-   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-     
-     // build our texture mipmaps
-   	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-     
-     // free buffer
-   	free(data);
-     
-   	return texture;
+   	return textures;
 	
 	
-}
-
-Bola bola;
-double zRotated = 0;
-
-double convertRadToDeg(double rad){
-	return rad*180.0/PI;
-}
-
-double convertDegToRad(double deg){
-	return deg*PI/180.0;
-}
-
-void loadTexture(GLuint texture, const char* filename){
-	Bitmap image;
-	image.loadBMP(filename);
-	
-	glBindTexture(GL_TEXTURE_2D, texture);
-	
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, image.width, image.height, GL_RGB, GL_UNSIGNED_BYTE, image.data);
 }
 
 void inicializacao() {
@@ -229,10 +191,11 @@ void inicializacao() {
     //glEnable(GL_TEXTURE_2D);
     //lava_texture = getTexture("lava_texture.bmp", 1024, 1024);
     
-    glGenTextures(2, textures);
-    loadTexture(textures[ROCK_TEXTURE], "rock_texture.bmp");
-    loadTexture(textures[LAVA_TEXTURE], "lava_texture.bmp");    
-    
+	const char* textures_filenames[] = {"rock_texture.bmp", "lava_texture.bmp"};
+    textures = getTextures(textures_filenames, 2);
+	
+	cout << "lava = " << textures[0] << endl;
+	
 	glClearColor(0.5, 0.8, 1, 0);
 }
 
@@ -240,7 +203,7 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 	double inc = (2*PI)/partes;
 	//glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
-		//glBindTexture(GL_TEXTURE_2D, rock_texture);
+		glBindTexture(GL_TEXTURE_2D, rock_texture);
 		glBegin(GL_TRIANGLE_FAN);
 			glColor3f(.3, .3, .3);
 			glTexCoord2f(.5, .5);
@@ -264,7 +227,8 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, lava_texture);
+			cout << "oi\n";
+		glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
 		for(int i = 0; i < lava_sectors.size(); i++){
 			double beg = convertDegToRad(lava_sectors[i].first);
 			double end = convertDegToRad(lava_sectors[i].second);
@@ -292,7 +256,7 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 	setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
 
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, rock_texture);
+	glBindTexture(GL_TEXTURE_2D, textures[ROCK_TEXTURE_INDEX]);
 
 	
 	glBegin(GL_TRIANGLE_FAN);
@@ -343,7 +307,6 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 	glDisable(GL_LIGHTING);*/
 	
 	setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
-	
 
 }
 
@@ -412,7 +375,6 @@ bool colisao(){
 	double rotgraus = (180.0/PI)*rot;
 	int indexObstacle = getObstacle(infBola);
 	for(int i = 0; i < obstacle_lava_sectors[indexObstacle].size(); i++){
-		cout << "["<<obstacle_lava_sectors[indexObstacle][i].first<<", "<<obstacle_lava_sectors[indexObstacle][i].second<<"]\n";
 	}
 	return checkCollision(infBola, indexObstacle, rotgraus) || checkCollision(infBola+bola.getVy(), getObstacle(infBola+bola.getVy()), rotgraus);
 }
@@ -444,8 +406,6 @@ void funcaoDisplay() {
 bool checkRotation(double rotation){
 	int indexObstacle = getObstacle(bola.getY());
 	double rotDeg = convertRadToDeg(rotation);
-	//cout << "y = " << bola.getY() << endl;
-	//cout << "[" << calcPosObstacle(indexObstacle) << ", " << calcPosObstacle(indexObstacle)-OBSTACLE_HEIGHT << "]\n";
 	return !((rotDeg > obstacles[indexObstacle].second || rotDeg < obstacles[indexObstacle].first) && bola.getY() < calcPosObstacle(indexObstacle)-OBSTACLE_HEIGHT && bola.getY() > calcPosObstacle(indexObstacle)-2*OBSTACLE_HEIGHT);
 }
 
@@ -492,7 +452,6 @@ int main(int argc, char **argv) {
 			if(ini > fim) swap(fim, ini);
 			if((ini >= obstacles[i].first && ini <= obstacles[i].second) || (fim >= obstacles[i].first && fim <= obstacles[i].second)) continue;
 			obstacle_lava_sectors[i].push_back(make_pair(ini, fim));
-			printf("(%d, %d)\n", ini, fim);
 		}
 	}
 	
