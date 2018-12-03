@@ -5,18 +5,19 @@
 #include <string.h>
 #include <vector>
 #include <bits/stdc++.h>
+#include <ghiplus.h>
 double ycam=0;
 double xcam=0;
 double zcam=0;
 double xbola=0,ybola=0,zbola=0;
 using namespace std;
 double rot = 0;
+
 //y: pra cima
 //x: pra dentro da tela
 //z: pra direita
 
-
-double escala = .18;
+double escala = .16;
 const double COLLISION_ACCELERATION = .19*escala;
 const double GRAVITY_ACCELERATION = 0.01*escala;
 const double SPHERE_RADIUS = 0.5*escala;
@@ -26,13 +27,20 @@ const double PI = 3.14159265359;
 const double OBSTACLE_HEIGHT = 1*escala;
 const double DISTANCE_BETWEEN_OBSTACLES = 4*escala;
 const double MAX_SPEED = .3*escala;
-const int OBSTACLE_COUNT = 200005;
+const int OBSTACLE_COUNT = 100;
 const int BOUNCE_ANIMATION_FRAMES = 8;
 const int SLICES = 100;
 const double STRETCH_BY_SPEED_FACTOR = 6;
 
 pair<double, double> obstacles[200005];
-GLuint textura_pedra;
+vector<pair<double, double> > obstacle_lava_sectors[200005];
+GLuint rock_texture;
+GLuint lava_texture;
+GLuint *textures = new GLuint[2];
+
+const int ROCK_TEXTURE = 1;
+const int LAVA_TEXTURE = 2;
+
 class Bola{
 private:
 	int slices; //quantidade de slices que dividirão a esfera
@@ -121,7 +129,26 @@ public:
 };
 
 
-GLuint getTexture(const char *filename, int width, int height){
+GLuint* getTextures(vector<char*> filenames, int width=1024, int height=1024){
+	
+	GLuint *textures;
+	glGenTextures(filenames.size(), textures);
+	
+	for(int i = 0; i < filenames.size(); i++){
+		GLuint texture;
+		unsigned char *data;
+		
+		FILE *file;
+		
+		file = fopen(filenames[i], "rb");
+		if(file == NULL) continue;
+		
+		data = (unsigned char*) malloc(width*height*4);
+		
+		size_t sz = fread(data, width * height * 4, 1, file);
+		fclose(file);
+		free(data);
+	}
 	GLuint texture;
 	unsigned char *data;
 	FILE *file;
@@ -173,122 +200,171 @@ double convertRadToDeg(double rad){
 	return rad*180.0/PI;
 }
 
+double convertDegToRad(double deg){
+	return deg*PI/180.0;
+}
+
+void loadTexture(GLuint texture, const char* filename){
+	Bitmap image;
+	image.loadBMP(filename);
+	
+	glBindTexture(GL_TEXTURE_2D, texture);
+	
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, image.width, image.height, GL_RGB, GL_UNSIGNED_BYTE, image.data);
+}
+
 void inicializacao() {
 	glEnable(GL_DEPTH_TEST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    textura_pedra = getTexture("textura_pedra.bmp", 1024, 1024);
+    //rock_texture = getTexture("rock_texture.bmp", 1024, 1024);
     //glEnable(GL_TEXTURE_2D);
+    //lava_texture = getTexture("lava_texture.bmp", 1024, 1024);
+    
+    glGenTextures(2, textures);
+    loadTexture(textures[ROCK_TEXTURE], "rock_texture.bmp");
+    loadTexture(textures[LAVA_TEXTURE], "lava_texture.bmp");    
+    
 	glClearColor(0.5, 0.8, 1, 0);
 }
 
-void setorCircular(double x, double y, double z, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1002){
-	glPushMatrix();
+void setorCircular(double x, double y, double z, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1002){
+	double inc = (2*PI)/partes;
+	//glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, textura_pedra);
+		//glBindTexture(GL_TEXTURE_2D, rock_texture);
 		glBegin(GL_TRIANGLE_FAN);
+			glColor3f(.3, .3, .3);
 			glTexCoord2f(.5, .5);
 			glVertex3f(x, y, z);
-			glColor3f(.3, .3, .3);
-			double anguloIni = (PI/180.0)*anguloIniDeg;
-			double anguloFim = (PI/180.0)*anguloFimDeg;
-			double inc = (2*PI)/partes;
+			double anguloIni = convertDegToRad(anguloIniDeg);
+			double anguloFim = convertDegToRad(anguloFimDeg);
+
 			if(anguloIni > anguloFim) swap(anguloIni, anguloFim);
 			for(double angle = 0; angle <= anguloIni; angle += inc){
 				glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
-				glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
+				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
 		glEnd();
 		glBegin(GL_TRIANGLE_FAN);
+			glColor3f(.3, .3, .3);
 			glVertex3f(x, y, z);
 			for(double angle = anguloFim; angle <= 2*PI; angle += inc){
 				glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
-				glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
+				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
-	glPopMatrix();
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, lava_texture);
+		for(int i = 0; i < lava_sectors.size(); i++){
+			double beg = convertDegToRad(lava_sectors[i].first);
+			double end = convertDegToRad(lava_sectors[i].second);
+			if(beg > end) swap(beg, end);
+			glBegin(GL_TRIANGLE_FAN);
+				glColor3f(1, 0, 0);
+				glTexCoord2f(.5, .5);
+				glVertex3f(x, y, z);
+				for(double angle = beg; angle <= end; angle += inc){
+					glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
+					glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+				}
+			glEnd();
+		}
+		glDisable(GL_TEXTURE_2D);
+	//glPopMatrix();
 	
 }
 
-void setorCilindrico(double x, double y, double z, double h, double raio, double anguloIniDeg, double anguloFimDeg, int partes=1002){
+void setorCilindrico(double x, double y, double z, double h, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1002){
 	double anguloIni = (PI/180.0)*anguloIniDeg;
 	double anguloFim = (PI/180.0)*anguloFimDeg;
 	double inc = (2*PI)/partes;
 
-	glBindTexture(GL_TEXTURE_2D, textura_pedra);
-	glEnable(GL_TEXTURE_2D);
+	setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
 
-	setorCircular(x, y-h, z, raio, anguloIniDeg, anguloFimDeg, partes);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, rock_texture);
+
 	
 	glBegin(GL_TRIANGLE_FAN);
+		glColor3f(.3, .3, .3);
 		glTexCoord2f(0.1, 0.5);
 		glVertex3f(x, y, z);
 		glTexCoord2f(0.1, 0.2);
 		glVertex3f(x, y-h, z);
 		glTexCoord2f(.85, 0.2);
-		glVertex3f(x-cos(anguloIni)*raio, y-h, z-sin(anguloIni)*raio);
+		glVertex3f(x-cos(anguloIni)*radius, y-h, z-sin(anguloIni)*radius);
 		glTexCoord2f(.85, .5);
-		glVertex3f(x-cos(anguloIni)*raio, y, z-sin(anguloIni)*raio);
+		glVertex3f(x-cos(anguloIni)*radius, y, z-sin(anguloIni)*radius);
 	glEnd();
 	
 	glBegin(GL_TRIANGLE_FAN);
+		glColor3f(.3, .3, .3);
 		glTexCoord2f(0.1, 0.5);
 		glVertex3f(x, y, z);
 		glTexCoord2f(0.1, 0.2);
 		glVertex3f(x, y-h, z);
 		glTexCoord2f(.85, 0.2);
-		glVertex3f(x-cos(anguloFim)*raio, y-h, z-sin(anguloFim)*raio);
+		glVertex3f(x-cos(anguloFim)*radius, y-h, z-sin(anguloFim)*radius);
 		glTexCoord2f(.85, .5);
-		glVertex3f(x-cos(anguloFim)*raio, y, z-sin(anguloFim)*raio);
+		glVertex3f(x-cos(anguloFim)*radius, y, z-sin(anguloFim)*radius);
 	glEnd();
 	glDisable(GL_TEXTURE_2D);	
 	
 	glBegin(GL_TRIANGLE_STRIP);
+	glColor3f(.3, .3, .3);
 	for(double angle = 0; angle <= anguloIni; angle += inc){
 
-		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
-		glVertex3f(x-cos(angle)*raio, y-h, z-sin(angle)*raio);			
+		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);			
 
 	}
 	glEnd();
-	//glColor3f(0, 0, 0);
 	glBegin(GL_TRIANGLE_STRIP);
-	for(double angle = anguloFim; angle <= 2*PI-inc; angle += inc){
-		glVertex3f(x-cos(angle)*raio, y, z-sin(angle)*raio);
-		glVertex3f(x-cos(angle)*raio, y-h, z-sin(angle)*raio);
+	glColor3f(.3, .3, .3);
+	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
+		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);
 	
 	}
 	glEnd();
+	glDisable(GL_TEXTURE_2D);
 	
 /*	glDisable(GL_LIGHT1);
 	glDisable(GL_LIGHTING);*/
 	
-	setorCircular(x, y, z, raio, anguloIniDeg, anguloFimDeg, partes);	
+	setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
 	
 
 }
 
 //desenha circulo centrado em (x, y, z) com raio, paralelo ao plano XZ
-void circulo(double x, double y, double z, double raio, int partes=1002){
+void circulo(double x, double y, double z, double radius, int partes=1002){
 	glBegin(GL_TRIANGLE_FAN);
 	glVertex3f(x, y, z);
 	for(double angle = 0; angle <= 2*PI; angle+=(2*PI)/partes){
-		glVertex3f(x + sin(angle)*raio, y, z+cos(angle)*raio);
+		glVertex3f(x + sin(angle)*radius, y, z+cos(angle)*radius);
 	}
 	glEnd();
 }
 
 //desenha cilindro com topo em (x, y, z) e fundo em (x, y-h, z) com raio
-void cilindro(double x, double y, double z, double h, double raio){
-	circulo(x, y, z, raio);
-	circulo(x, y-h, z, raio);
+void cilindro(double x, double y, double z, double h, double radius){
+	circulo(x, y, z, radius);
+	circulo(x, y-h, z, radius);
 	glPushMatrix();
 		glTranslatef(x, y, z);
 		glRotatef(90, 1, 0, 0);
-		gluCylinder(gluNewQuadric(), raio, raio, h, SLICES, SLICES);
+		gluCylinder(gluNewQuadric(), radius, radius, h, SLICES, SLICES);
 	glPopMatrix();
 }
 
@@ -302,15 +378,12 @@ int getObstacle(double ballPosition){
 	int ini = 0;
 	int fim = OBSTACLE_COUNT;
 	while(fim > ini){
-		//cout << "("<<ini<<", "<<fim<<")\n";
 		int mid = (ini+fim+1)/2;
 		double pos = -DISTANCE_BETWEEN_OBSTACLES*mid;
 		if(pos <= ballPosition){
 			fim = mid-1;
 		}
 		else{
-			//cout << "pos = " << pos << endl;
-			//cout << "ballPosition = " << ballPosition << endl;
 			ini = mid;
 		}
 	}
@@ -324,8 +397,8 @@ double calcPosObstacle(int index){
 void desenhaObstaculos(){
 	glColor3f(0, 0, 1);
 	int ini = getObstacle(bola.getY());
-	for(int i = max(0, ini-4); i < ini+5; i++){
-		setorCilindrico(0, calcPosObstacle(i), 0, OBSTACLE_HEIGHT, OBSTACLE_RADIUS, obstacles[i].first, obstacles[i].second);
+	for(int i = max(0, ini-4); i < min(OBSTACLE_COUNT, ini+5); i++){
+		setorCilindrico(0, calcPosObstacle(i), 0, OBSTACLE_HEIGHT, OBSTACLE_RADIUS, obstacles[i].first, obstacles[i].second, obstacle_lava_sectors[i]);
 	}
 }
 
@@ -338,6 +411,9 @@ bool colisao(){
 	double infBola = bola.getY()+SPHERE_RADIUS*2;
 	double rotgraus = (180.0/PI)*rot;
 	int indexObstacle = getObstacle(infBola);
+	for(int i = 0; i < obstacle_lava_sectors[indexObstacle].size(); i++){
+		cout << "["<<obstacle_lava_sectors[indexObstacle][i].first<<", "<<obstacle_lava_sectors[indexObstacle][i].second<<"]\n";
+	}
 	return checkCollision(infBola, indexObstacle, rotgraus) || checkCollision(infBola+bola.getVy(), getObstacle(infBola+bola.getVy()), rotgraus);
 }
 
@@ -356,7 +432,7 @@ void funcaoDisplay() {
 	GLfloat params[] = {1, 0, 0, .1};
 
 
-	gluLookAt(bola.getX()*(SPHERE_RADIUS+.5), bola.getY()+.07, bola.getZ()*(SPHERE_RADIUS+.5), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
+	gluLookAt(bola.getX()*(SPHERE_RADIUS+.4), bola.getY()+.07, bola.getZ()*(SPHERE_RADIUS+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	
 	desenhaObstaculos();
 	bola.desenha();
@@ -368,8 +444,8 @@ void funcaoDisplay() {
 bool checkRotation(double rotation){
 	int indexObstacle = getObstacle(bola.getY());
 	double rotDeg = convertRadToDeg(rotation);
-	cout << "y = " << bola.getY() << endl;
-	cout << "[" << calcPosObstacle(indexObstacle) << ", " << calcPosObstacle(indexObstacle)-OBSTACLE_HEIGHT << "]\n";
+	//cout << "y = " << bola.getY() << endl;
+	//cout << "[" << calcPosObstacle(indexObstacle) << ", " << calcPosObstacle(indexObstacle)-OBSTACLE_HEIGHT << "]\n";
 	return !((rotDeg > obstacles[indexObstacle].second || rotDeg < obstacles[indexObstacle].first) && bola.getY() < calcPosObstacle(indexObstacle)-OBSTACLE_HEIGHT && bola.getY() > calcPosObstacle(indexObstacle)-2*OBSTACLE_HEIGHT);
 }
 
@@ -409,6 +485,15 @@ int main(int argc, char **argv) {
 		double b = a + 60 + rand()%(301-int(a));
 		if(a > b) swap(a, b);
 		obstacles[i] = make_pair(a, b);
+		int qt_lava_sector = rand()%4;
+		for(int j = 0; j < qt_lava_sector; j++){
+			int ini = rand()%330;
+			int fim = ini+ 15 + (rand()&15);
+			if(ini > fim) swap(fim, ini);
+			if((ini >= obstacles[i].first && ini <= obstacles[i].second) || (fim >= obstacles[i].first && fim <= obstacles[i].second)) continue;
+			obstacle_lava_sectors[i].push_back(make_pair(ini, fim));
+			printf("(%d, %d)\n", ini, fim);
+		}
 	}
 	
 	bola = Bola();
@@ -428,4 +513,3 @@ int main(int argc, char **argv) {
 	
 	return 0;
 }
-
