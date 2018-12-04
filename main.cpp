@@ -213,9 +213,9 @@ GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, in
 }
 
 void inicializacao() {
+	gluPerspective(45, 1.3, .1, 100);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_COLOR_MATERIAL);
-//	glCullFace(GL_FRONT);
+	glCullFace(GL_FRONT);
 	/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -242,7 +242,7 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 			double anguloFim = convertDegToRad(anguloFimDeg);
 
 			if(anguloIni > anguloFim) swap(anguloIni, anguloFim);
-			for(double angle = 0; angle <= anguloIni; angle += inc){
+			for(double angle = anguloIni; angle >= 0; angle -= inc){
 				glTexCoord2f(.5+cos(angle)*radius, .5+sin(angle)*radius);
 				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
@@ -250,7 +250,7 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 		glBegin(GL_TRIANGLE_FAN);
 			glColor3f(.3, .3, .3);
 			glVertex3f(x, y, z);
-			for(double angle = anguloFim; angle <= 2*PI; angle += inc){
+			for(double angle = 2*PI; angle >= anguloFim; angle -= inc){
 				glTexCoord2f(cos(angle)*radius, sin(angle)*radius);
 				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
@@ -486,7 +486,7 @@ int main(int argc, char **argv) {
 	
 	bola = Bola();
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(800, 800);
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow("Jogo");
