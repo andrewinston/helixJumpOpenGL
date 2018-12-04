@@ -26,7 +26,7 @@ const double PI = 3.14159265359;
 const double OBSTACLE_HEIGHT = 1*escala;
 const double DISTANCE_BETWEEN_OBSTACLES = 4*escala;
 const double MAX_SPEED = .3*escala;
-const int OBSTACLE_COUNT = 100;
+const int OBSTACLE_COUNT = 200005;
 const int BOUNCE_ANIMATION_FRAMES = 8;
 const int SLICES = 100;
 const double STRETCH_BY_SPEED_FACTOR = 6;
@@ -102,7 +102,7 @@ public:
 		if(!bounceAnimation) move();
 		upd(DISTANCE_BALL_TO_CYLINDER_AXIS*cos(rot), y, DISTANCE_BALL_TO_CYLINDER_AXIS*sin(rot));
 
-		GLfloat params[] = {1, 0, 0, .2};
+		GLfloat params[] = {1, 0, 0, .9};
 	
 		glEnable(GL_LIGHTING);
 		glLightfv(GL_LIGHT0, GL_AMBIENT, params);
@@ -137,9 +137,35 @@ double convertDegToRad(double deg){
 Bola bola;
 double zRotated = 0;
 
+unsigned char* readBMP(const char* filename)
+{
+    int i;
+    FILE* f = fopen(filename, "rb");
+    unsigned char info[54];
+    size_t s = fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
+
+    // extract image height and width from header
+    int width = *(int*)&info[18];
+    int height = *(int*)&info[22];
+
+    int size = 3 * width * height;
+    unsigned char* data = new unsigned char[size]; // allocate 3 bytes per pixel
+    s = fread(data, sizeof(unsigned char), size, f); // read the rest of the data at once
+    fclose(f);
+
+    for(i = 0; i < size; i += 3)
+    {
+            unsigned char tmp = data[i];
+            data[i] = data[i+2];
+            data[i+2] = tmp;
+    }
+
+    return data;
+}
+
 GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, int height=1024){
 	
-	GLuint *textures;
+	GLuint *textures = new GLuint[qt_textures];
 	glGenTextures(qt_textures, textures);
 	
 	for(int i = 0; i < qt_textures; i++){
@@ -148,13 +174,19 @@ GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, in
 		
 		FILE *file;
 		
-		file = fopen(filenames[i], "rb");
-		if(file == NULL) continue;
+		//file = fopen(filenames[i], "rb");
+		//if(file == NULL) continue;
 		
-		data = (unsigned char*) malloc(width*height*4);
+		//data = (unsigned char*) malloc(width*height*12);
 		
-		size_t sz = fread(data, width * height * 4, 1, file);
-		fclose(file);
+		//size_t sz = fread(data, width * height * 4, 1, file);
+		
+		//SOIL_load_image(filenames[i], &width, &height, 0, SOIL_LOAD_RGB);
+		
+		//fclose(file);
+		data = readBMP(filenames[i]);
+		
+		glBindTexture(GL_TEXTURE_2D, textures[i]);
 		
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		
@@ -162,20 +194,19 @@ GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, in
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_DECAL);
 		
 		// when texture area is small, bilinear filter the closest mipmap
-		/*glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 		 // when texture area is large, bilinear filter the first mipmap
 	  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		 
 		 // texture should tile
 	   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
+	   	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		 
 		 // build our texture mipmaps
 	   	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		
-		free(data);
 	}
-     
+	//cout << "oi\n"; 
    	return textures;
 	
 	
@@ -183,27 +214,26 @@ GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, in
 
 void inicializacao() {
 	glEnable(GL_DEPTH_TEST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glEnable(GL_COLOR_MATERIAL);
+//	glCullFace(GL_FRONT);
+	/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //rock_texture = getTexture("rock_texture.bmp", 1024, 1024);
-    //glEnable(GL_TEXTURE_2D);
-    //lava_texture = getTexture("lava_texture.bmp", 1024, 1024);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);*/
     
 	const char* textures_filenames[] = {"rock_texture.bmp", "lava_texture.bmp"};
     textures = getTextures(textures_filenames, 2);
-	
-	cout << "lava = " << textures[0] << endl;
+	cout << "oi\n";
 	
 	glClearColor(0.5, 0.8, 1, 0);
 }
 
 void setorCircular(double x, double y, double z, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1002){
 	double inc = (2*PI)/partes;
-	//glPushMatrix();
+	glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, rock_texture);
+		cout << "oi\n";
+		glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
 		glBegin(GL_TRIANGLE_FAN);
 			glColor3f(.3, .3, .3);
 			glTexCoord2f(.5, .5);
@@ -213,7 +243,7 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 
 			if(anguloIni > anguloFim) swap(anguloIni, anguloFim);
 			for(double angle = 0; angle <= anguloIni; angle += inc){
-				glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
+				glTexCoord2f(.5+cos(angle)*radius, .5+sin(angle)*radius);
 				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
 		glEnd();
@@ -221,13 +251,12 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 			glColor3f(.3, .3, .3);
 			glVertex3f(x, y, z);
 			for(double angle = anguloFim; angle <= 2*PI; angle += inc){
-				glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
+				glTexCoord2f(cos(angle)*radius, sin(angle)*radius);
 				glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 			}
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 		glEnable(GL_TEXTURE_2D);
-			cout << "oi\n";
 		glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
 		for(int i = 0; i < lava_sectors.size(); i++){
 			double beg = convertDegToRad(lava_sectors[i].first);
@@ -238,13 +267,13 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 				glTexCoord2f(.5, .5);
 				glVertex3f(x, y, z);
 				for(double angle = beg; angle <= end; angle += inc){
-					glTexCoord2f(.5+cos(angle)*.2, .5+sin(angle)*.2);
+					glTexCoord2f(.5+cos(angle)*.5, .5+sin(angle)*.5);
 					glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 				}
 			glEnd();
 		}
 		glDisable(GL_TEXTURE_2D);
-	//glPopMatrix();
+	glPopMatrix();
 	
 }
 
@@ -255,8 +284,32 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 
 	setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
 
+	
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, textures[ROCK_TEXTURE_INDEX]);
+	glBegin(GL_TRIANGLE_STRIP);
+	glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
+	glBegin(GL_TRIANGLE_STRIP);
+	glColor3f(.3, .3, .3);
+	for(double angle = 0; angle <= anguloIni; angle += inc){
+		glTexCoord2f(angle, 1);	
+		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+		glTexCoord2f(angle, 0);
+		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);			
+
+	}
+	glEnd();
+	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
+		glTexCoord2f(angle, 1);	
+		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+		glTexCoord2f(angle, 0);
+		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);
+	
+	}
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+	
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
 
 	
 	glBegin(GL_TRIANGLE_FAN);
@@ -283,26 +336,6 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 		glVertex3f(x-cos(anguloFim)*radius, y, z-sin(anguloFim)*radius);
 	glEnd();
 	glDisable(GL_TEXTURE_2D);	
-	
-	glBegin(GL_TRIANGLE_STRIP);
-	glColor3f(.3, .3, .3);
-	for(double angle = 0; angle <= anguloIni; angle += inc){
-
-		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
-		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);			
-
-	}
-	glEnd();
-	glBegin(GL_TRIANGLE_STRIP);
-	glColor3f(.3, .3, .3);
-	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
-		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
-		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);
-	
-	}
-	glEnd();
-	glDisable(GL_TEXTURE_2D);
-	
 /*	glDisable(GL_LIGHT1);
 	glDisable(GL_LIGHTING);*/
 	
@@ -360,7 +393,7 @@ double calcPosObstacle(int index){
 void desenhaObstaculos(){
 	glColor3f(0, 0, 1);
 	int ini = getObstacle(bola.getY());
-	for(int i = max(0, ini-4); i < min(OBSTACLE_COUNT, ini+5); i++){
+	for(int i = max(0, ini-3); i < min(OBSTACLE_COUNT, ini+3); i++){
 		setorCilindrico(0, calcPosObstacle(i), 0, OBSTACLE_HEIGHT, OBSTACLE_RADIUS, obstacles[i].first, obstacles[i].second, obstacle_lava_sectors[i]);
 	}
 }
@@ -380,19 +413,15 @@ bool colisao(){
 }
 
 void funcaoDisplay() {
-	glCullFace(GL_FRONT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glCullFace(GL_FRONT);
 	if(colisao()){
 		bola.colide();
 	}
 	glLoadIdentity();
-	glOrtho(-100, 100, -100, 100, 0, 100);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
-	glClear(GL_COLOR_BUFFER_BIT);
-	GLfloat params[] = {1, 0, 0, .1};
-
 
 	gluLookAt(bola.getX()*(SPHERE_RADIUS+.4), bola.getY()+.07, bola.getZ()*(SPHERE_RADIUS+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	
@@ -426,7 +455,6 @@ void funcaoKeyboard(unsigned char key, int x, int y) {
 }
 
 void temporizador() {
-	zRotated+=0.3;
 	glutPostRedisplay();
 }
 
@@ -448,7 +476,7 @@ int main(int argc, char **argv) {
 		int qt_lava_sector = rand()%4;
 		for(int j = 0; j < qt_lava_sector; j++){
 			int ini = rand()%330;
-			int fim = ini+ 15 + (rand()&15);
+			int fim = ini+ 15 + (rand()%15);
 			if(ini > fim) swap(fim, ini);
 			if((ini >= obstacles[i].first && ini <= obstacles[i].second) || (fim >= obstacles[i].first && fim <= obstacles[i].second)) continue;
 			obstacle_lava_sectors[i].push_back(make_pair(ini, fim));
