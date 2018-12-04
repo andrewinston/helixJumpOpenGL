@@ -103,12 +103,12 @@ public:
 		upd(DISTANCE_BALL_TO_CYLINDER_AXIS*cos(rot), y, DISTANCE_BALL_TO_CYLINDER_AXIS*sin(rot));
 
 		GLfloat params[] = {1, 0, 0, .9};
-	
+		GLfloat posParams[] = {1, 1, 0, 0};
 		glEnable(GL_LIGHTING);
 		glLightfv(GL_LIGHT0, GL_AMBIENT, params);
 		glLightfv(GL_LIGHT0, GL_DIFFUSE, params);
 	 	glLightfv(GL_LIGHT0, GL_SPECULAR, params);
-	 	glLightfv(GL_LIGHT0, GL_POSITION, params);
+	 	glLightfv(GL_LIGHT0, GL_POSITION, posParams);
 		glEnable(GL_LIGHT0);
 		
 		glPushMatrix ();
@@ -285,6 +285,7 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 		double anguloFim = (PI/180.0)*anguloFimDeg;
 		double inc = (2*PI)/partes;
 
+		setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
 		setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
 
 		
@@ -343,7 +344,6 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 	/*	glDisable(GL_LIGHT1);
 		glDisable(GL_LIGHTING);*/
 		
-		setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
 	glPushMatrix();
 }
 
@@ -408,7 +408,7 @@ bool checkCollision(double posBall, int indexObstacle, double rotDeg){
 }
 
 bool colisao(){
-	double infBola = bola.getY()+SPHERE_RADIUS*2;
+	double infBola = bola.getY()+SPHERE_RADIUS;
 	double rotgraus = (180.0/PI)*rot;
 	int indexObstacle = getObstacle(infBola);
 	for(int i = 0; i < obstacle_lava_sectors[indexObstacle].size(); i++){
@@ -427,7 +427,7 @@ void funcaoDisplay() {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gluLookAt(bola.getX()*(SPHERE_RADIUS+.4), bola.getY()+.07, bola.getZ()*(SPHERE_RADIUS+.4), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
+	gluLookAt(bola.getX()*(SPHERE_RADIUS+.1), bola.getY()+.07, bola.getZ()*(SPHERE_RADIUS+.1), bola.getX(),bola.getY(),bola.getZ(), 0, 1, 0);
 	
 	desenhaObstaculos();
 	bola.desenha();
@@ -478,13 +478,13 @@ int main(int argc, char **argv) {
 		if(a > b) swap(a, b);
 		obstacles[i] = make_pair(a, b);
 		int qt_lava_sector = rand()%4;
-		for(int j = 0; j < qt_lava_sector; j++){
+		/*for(int j = 0; j < qt_lava_sector; j++){
 			int ini = rand()%330;
 			int fim = ini+ 15 + (rand()%15);
 			if(ini > fim) swap(fim, ini);
 			if((ini >= obstacles[i].first && ini <= obstacles[i].second) || (fim >= obstacles[i].first && fim <= obstacles[i].second)) continue;
 			obstacle_lava_sectors[i].push_back(make_pair(ini, fim));
-		}
+		}*/
 	}
 	
 	bola = Bola();
