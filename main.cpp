@@ -215,7 +215,8 @@ GLuint* getTextures(const char* filenames[], int qt_textures, int width=1024, in
 void inicializacao() {
 	gluPerspective(45, 1.3, .1, 100);
 	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_FRONT);
+	//glDepthFunc(GL_GEQUAL);
+	
 	/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -228,7 +229,7 @@ void inicializacao() {
 	glClearColor(0.5, 0.8, 1, 0);
 }
 
-void setorCircular(double x, double y, double z, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1002){
+void setorCircular(double x, double y, double z, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1005){
 	double inc = (2*PI)/partes;
 	glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
@@ -277,75 +278,77 @@ void setorCircular(double x, double y, double z, double radius, double anguloIni
 	
 }
 
-void setorCilindrico(double x, double y, double z, double h, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1002){
-	double anguloIni = (PI/180.0)*anguloIniDeg;
-	double anguloFim = (PI/180.0)*anguloFimDeg;
-	double inc = (2*PI)/partes;
+void setorCilindrico(double x, double y, double z, double h, double radius, double anguloIniDeg, double anguloFimDeg, vector<pair<double, double> > &lava_sectors, int partes=1005){
+	glPushMatrix();
+		//glRotatef(180, 1, 0, 0);
+		double anguloIni = (PI/180.0)*anguloIniDeg;
+		double anguloFim = (PI/180.0)*anguloFimDeg;
+		double inc = (2*PI)/partes;
 
-	setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
+		setorCircular(x, y-h, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);
 
-	
-	glEnable(GL_TEXTURE_2D);
-	glBegin(GL_TRIANGLE_STRIP);
-	glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
-	glBegin(GL_TRIANGLE_STRIP);
-	glColor3f(.3, .3, .3);
-	for(double angle = 0; angle <= anguloIni; angle += inc){
-		glTexCoord2f(angle, 1);	
-		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
-		glTexCoord2f(angle, 0);
-		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);			
-
-	}
-	glEnd();
-	glBegin(GL_TRIANGLE_STRIP);
-	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
-		glTexCoord2f(angle, 1);	
-		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
-		glTexCoord2f(angle, 0);
-		glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);
-	
-	}
-	glEnd();
-	glDisable(GL_TEXTURE_2D);
-	
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
-
-	
-	glBegin(GL_TRIANGLE_FAN);
+		
+		glEnable(GL_TEXTURE_2D);
+		glBegin(GL_TRIANGLE_STRIP);
+		glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
+		glBegin(GL_TRIANGLE_STRIP);
 		glColor3f(.3, .3, .3);
-		glTexCoord2f(0.1, 0.5);
-		glVertex3f(x, y, z);
-		glTexCoord2f(0.1, 0.2);
-		glVertex3f(x, y-h, z);
-		glTexCoord2f(.85, 0.2);
-		glVertex3f(x-cos(anguloIni)*radius, y-h, z-sin(anguloIni)*radius);
-		glTexCoord2f(.85, .5);
-		glVertex3f(x-cos(anguloIni)*radius, y, z-sin(anguloIni)*radius);
-	glEnd();
-	
-	glBegin(GL_TRIANGLE_FAN);
-		glColor3f(.3, .3, .3);
-		glTexCoord2f(0.1, 0.5);
-		glVertex3f(x, y, z);
-		glTexCoord2f(0.1, 0.2);
-		glVertex3f(x, y-h, z);
-		glTexCoord2f(.85, 0.2);
-		glVertex3f(x-cos(anguloFim)*radius, y-h, z-sin(anguloFim)*radius);
-		glTexCoord2f(.85, .5);
-		glVertex3f(x-cos(anguloFim)*radius, y, z-sin(anguloFim)*radius);
-	glEnd();
-	glDisable(GL_TEXTURE_2D);	
-/*	glDisable(GL_LIGHT1);
-	glDisable(GL_LIGHTING);*/
-	
-	setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
+		for(double angle = 0; angle <= anguloIni; angle += inc){
+			glTexCoord2f(angle, 0);
+			glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);			
+			glTexCoord2f(angle, 1);	
+			glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
 
+		}
+		glEnd();
+		glBegin(GL_TRIANGLE_STRIP);
+		for(double angle = anguloFim; angle <= 2*PI; angle += inc){
+			glTexCoord2f(angle, 0);
+			glVertex3f(x-cos(angle)*radius, y-h, z-sin(angle)*radius);
+			glTexCoord2f(angle, 1);	
+			glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
+		
+		}
+		glEnd();
+		glDisable(GL_TEXTURE_2D);
+		
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, textures[LAVA_TEXTURE_INDEX]);
+
+		
+		glBegin(GL_TRIANGLE_FAN);
+			glColor3f(.3, .3, .3);
+			glTexCoord2f(0.1, 0.5);
+			glVertex3f(x, y, z);
+			glTexCoord2f(0.1, 0.2);
+			glVertex3f(x, y-h, z);
+			glTexCoord2f(.85, 0.2);
+			glVertex3f(x-cos(anguloIni)*radius, y-h, z-sin(anguloIni)*radius);
+			glTexCoord2f(.85, .5);
+			glVertex3f(x-cos(anguloIni)*radius, y, z-sin(anguloIni)*radius);
+		glEnd();
+		
+		glBegin(GL_TRIANGLE_FAN);
+			glColor3f(.3, .3, .3);
+			glTexCoord2f(0.1, 0.5);
+			glVertex3f(x, y, z);
+			glTexCoord2f(0.1, 0.2);
+			glVertex3f(x, y-h, z);
+			glTexCoord2f(.85, 0.2);
+			glVertex3f(x-cos(anguloFim)*radius, y-h, z-sin(anguloFim)*radius);
+			glTexCoord2f(.85, .5);
+			glVertex3f(x-cos(anguloFim)*radius, y, z-sin(anguloFim)*radius);
+		glEnd();
+		glDisable(GL_TEXTURE_2D);	
+	/*	glDisable(GL_LIGHT1);
+		glDisable(GL_LIGHTING);*/
+		
+		setorCircular(x, y, z, radius, anguloIniDeg, anguloFimDeg, lava_sectors, partes);	
+	glPushMatrix();
 }
 
 //desenha circulo centrado em (x, y, z) com raio, paralelo ao plano XZ
-void circulo(double x, double y, double z, double radius, int partes=1002){
+void circulo(double x, double y, double z, double radius, int partes=1005){
 	glBegin(GL_TRIANGLE_FAN);
 	glVertex3f(x, y, z);
 	for(double angle = 0; angle <= 2*PI; angle+=(2*PI)/partes){
