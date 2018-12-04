@@ -298,6 +298,7 @@ void setorCilindrico(double x, double y, double z, double h, double radius, doub
 
 	}
 	glEnd();
+	glBegin(GL_TRIANGLE_STRIP);
 	for(double angle = anguloFim; angle <= 2*PI; angle += inc){
 		glTexCoord2f(angle, 1);	
 		glVertex3f(x-cos(angle)*radius, y, z-sin(angle)*radius);
